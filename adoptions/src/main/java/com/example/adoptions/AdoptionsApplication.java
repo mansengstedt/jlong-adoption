@@ -9,10 +9,11 @@ import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvi
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.mcp.SyncMcpToolCallback;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +32,7 @@ import java.util.List;
 @SpringBootApplication
 public class AdoptionsApplication {
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(AdoptionsApplication.class, args);
     }
 
@@ -73,7 +74,8 @@ class AdoptionsController {
                         PromptChatMemoryAdvisor promptChatMemoryAdvisor,
                         ChatClient.Builder ai,
                         DogRepository repository,
-                        VectorStore vectorStore) {
+                        VectorStore vectorStore,
+                        @Value("${spring.ai.anthropic.model}") String model) {
 
         var count = db
                 .sql("select count(*) from vector_store")
@@ -92,8 +94,11 @@ class AdoptionsController {
                 """;
         this.ai = ai
                 .defaultToolCallbacks(new SyncMcpToolCallbackProvider(mcpSyncClient))
-                .defaultAdvisors(promptChatMemoryAdvisor, new QuestionAnswerAdvisor(vectorStore))
+                .defaultAdvisors(promptChatMemoryAdvisor, QuestionAnswerAdvisor.builder(vectorStore).build())
                 .defaultSystem(system)
+                .defaultOptions(ChatOptions.builder()
+                        .model(model)
+                        .build())
                 .build();
     }
 

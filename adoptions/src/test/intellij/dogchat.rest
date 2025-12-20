@@ -1,0 +1,43 @@
+
+### First statement
+GET {{host}}/{{user}}/assistant?question="my name is Mans!"
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+%}
+
+### First question
+GET {{host}}/{{user}}/assistant?question="do you have any neurotic dogs?"
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+%}
+
+### Followup question
+GET {{host}}/{{user}}/assistant?question="fantastic. when can i schedule an appointment to pickup Prancer from the New York City location?"
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+%}
+
+
+### Info
+GET {{host}}/actuator/info
+
+### Prometheus
+GET {{host}}/actuator/prometheus
+
+### Health
+GET {{host}}/actuator/health
+
+### Liveness
+GET {{host}}/actuator/health/liveness
+
+### Readiness
+GET {{host}}/actuator/health/readiness

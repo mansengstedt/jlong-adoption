@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: adoptions
+  sql:
+    init:
+      mode: always
+  datasource:
+    url: jdbc:postgresql://localhost:5433/postgresml
+    username: myappuser
+    password: mypassword
+  ai:
+    anthropic:
+      #must be set to dummy value even if not used to avoid errors at startup
+      api-key: ${ANTHROPIC_CONNECTION_KEY:NOT_NEEDED}
+      model: claude-sonnet-4-20250514
+    postgresml:
+      embedding:
+        create-extension: true
+        options:
+          vector-type: pg_vector
+    vectorstore:
+      pgvector:
+        dimensions: 768
+        initialize-schema: true
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
+    mcp:
+      client:
+        stdio:
+          #must exist in classpath
+          #servers-configuration: classpath:/github-mcp.json
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,prometheus,health
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          # This service cannot work without a DB
+          include: readinessState
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true

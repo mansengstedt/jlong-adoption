@@ -13,7 +13,7 @@ import java.time.temporal.ChronoUnit;
 @SpringBootApplication
 public class SchedulerApplication {
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(SchedulerApplication.class, args);
     }
 
