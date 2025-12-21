@@ -30,6 +30,9 @@ GET {{host}}/{{user}}/assistant?question="fantastic. when can i schedule an appo
 ### Info
 GET {{host}}/actuator/info
 
+### Check token usage
+GET {{host}}/actuator/metrics/gen_ai.client.token.usage
+
 ### Prometheus
 GET {{host}}/actuator/prometheus
 

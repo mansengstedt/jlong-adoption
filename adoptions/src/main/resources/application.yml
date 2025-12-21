@@ -10,7 +10,7 @@ spring:
     password: mypassword
   ai:
     anthropic:
-      #must be set to dummy value even if not used to avoid errors at startup
+      #must be set to dummy value even if not used to avoid errors at startup, real value stored in secrets
       api-key: ${ANTHROPIC_CONNECTION_KEY:NOT_NEEDED}
       model: claude-sonnet-4-20250514
     postgresml:
@@ -38,7 +38,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: info,prometheus,health
+        include: info,prometheus,health,metrics
   endpoint:
     health:
       show-details: always
