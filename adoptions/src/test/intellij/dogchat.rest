@@ -1,6 +1,7 @@
+# 3 endpointes, 2 different users: user, user2
 
 ### First statement
-GET {{host}}/{{user}}/assistant?question="my name is Mans!"
+GET {{host}}/{{user2}}/assistant?question="my name is SnoopDog2!"
 
 > {%
     client.test("Status", function () {
@@ -9,7 +10,7 @@ GET {{host}}/{{user}}/assistant?question="my name is Mans!"
 %}
 
 ### First question
-GET {{host}}/{{user}}/assistant?question="do you have any neurotic dogs?"
+GET {{host}}/{{user2}}/assistant?question="do you have any neurotic dogs?"
 
 > {%
     client.test("Status", function () {
@@ -26,15 +27,33 @@ GET {{host}}/{{user}}/assistant?question="fantastic. when can i schedule an appo
     });
 %}
 
+### Fetch messages
+GET {{host}}/{{user2}}/messages
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+%}
+
+### Clear messages
+DELETE {{host}}/{{user2}}/messages/clear
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 204, "Unexpected response status");
+    });
+%}
+
 
 ### Info
 GET {{host}}/actuator/info
 
+### Check operations
+GET {{host}}/actuator/metrics/gen_ai.client.operation
+
 ### Check token usage
 GET {{host}}/actuator/metrics/gen_ai.client.token.usage
-
-### Prometheus
-GET {{host}}/actuator/prometheus
 
 ### Health
 GET {{host}}/actuator/health

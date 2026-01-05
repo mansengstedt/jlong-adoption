@@ -1,17 +1,22 @@
 package com.example.adoptions.service;
 
+import com.example.adoptions.client.ChatClientWithChatMemory;
+import com.example.adoptions.model.out.ChatMessages;
 import com.example.adoptions.repository.DogRepository;
 import io.modelcontextprotocol.client.McpSyncClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.mcp.SyncMcpToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
@@ -21,64 +26,99 @@ import java.util.List;
 @Slf4j
 public class AdoptionsService {
 
-    private final ChatClient anthropicAi;
-
-    private final ChatClient geminiAi;
+    private final ChatClientWithChatMemory anthropicAi;
 
     AdoptionsService(JdbcClient db,
                      DogRepository repository,
                      VectorStore vectorStore,
+                     JdbcTemplate jdbcTemplate,
                      McpSyncClient mcpSyncClient,
-                     PromptChatMemoryAdvisor promptChatMemoryAdvisor,
+                     ChatMemory chatMemory,
                      ChatClient.Builder ai,
                      @Value("${spring.ai.anthropic.model}") String model) {
 
-        initVectorStore(db, repository, vectorStore);
-        this.anthropicAi = initChatClient(vectorStore, mcpSyncClient, promptChatMemoryAdvisor, ai, model);
-        this.geminiAi = ai.build(); //fix later
+        updateVectorStore(db, repository, vectorStore, jdbcTemplate);
+        this.anthropicAi = initChatClient(vectorStore, mcpSyncClient, chatMemory, ai, model);
     }
 
-    private void initVectorStore(JdbcClient db,
-                                 DogRepository repository,
-                                 VectorStore vectorStore) {
+    private void updateVectorStore(JdbcClient db,
+                                   DogRepository repository,
+                                   VectorStore vectorStore,
+                                   JdbcTemplate jdbcTemplate) {
+        var VECTOR_STORE_TABLE_NAME = "vector_store";
         var count = db
-                .sql("select count(*) from vector_store")
+                .sql("select count(*) from " + VECTOR_STORE_TABLE_NAME)
                 .query(Integer.class)
                 .single();
-        if (count == 0) {
-            repository.findAll().forEach(dog -> {
-                var dogument = new Document("id: %s, name: %s, description: %s".formatted(
+        var currentDogs = repository.findAll();
+        if (count != currentDogs.size()) {
+            log.warn("Vector store is NOT up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), count);
+            jdbcTemplate.execute("TRUNCATE TABLE " + VECTOR_STORE_TABLE_NAME);
+            currentDogs.forEach(dog -> {
+                var document = new Document("id: %s, name: %s, description: %s".formatted(
                         dog.id(), dog.name(), dog.description()
                 ));
-                vectorStore.add(List.of(dogument));
+                log.info("Adding document: {}", document);
+                vectorStore.add(List.of(document));
             });
+            log.info("Vector store is now up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), currentDogs.size());
+        } else {
+            log.info("Vector store is up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), count);
         }
     }
 
-    private ChatClient initChatClient(VectorStore vectorStore,
-                                      McpSyncClient mcpSyncClient,
-                                      PromptChatMemoryAdvisor promptChatMemoryAdvisor,
-                                      ChatClient.Builder ai,
-                                      String model) {
+    private ChatClientWithChatMemory initChatClient(VectorStore vectorStore,
+                                                    McpSyncClient mcpSyncClient,
+                                                    ChatMemory chatMemory,
+                                                    ChatClient.Builder ai,
+                                                    String model) {
         String system = """
-                You are an AI powered assistant to help people adopt a dog from the adoption agency named Pooch Palace with locations in Rio de Janeiro, Mexico City, Seoul, Tokyo, Singapore, Paris, Mumbai, New Delhi, Barcelona, London, and San Francisco. Information about the dogs available will be presented below. If there is no information, then return a polite response suggesting we don't have any dogs available.
+                You are an AI powered assistant to help people adopt a dog from the adoption agency named Pooch Palace
+                with locations in Rio de Janeiro, Mexico City, Seoul, Tokyo, Singapore, Paris, Mumbai, New Delhi, Barcelona, London, and San Francisco.
+                Information about the dogs available will be presented below.
+                If there is no information, then return a polite response suggesting we don't have any dogs available.
                 """;
-        return ai
+        PromptChatMemoryAdvisor promptChatMemoryAdvisor = PromptChatMemoryAdvisor
+                .builder(chatMemory)
+                .build();
+        return new ChatClientWithChatMemory(ai
                 .defaultToolCallbacks(new SyncMcpToolCallbackProvider(mcpSyncClient))
                 .defaultAdvisors(promptChatMemoryAdvisor, QuestionAnswerAdvisor.builder(vectorStore).build())
+                .defaultAdvisors(new SimpleLoggerAdvisor())
                 .defaultSystem(system)
                 .defaultOptions(ChatOptions.builder()
                         .model(model)
                         .build())
-                .build();
+                .build(), chatMemory);
     }
 
     public String query(String user, String question) {
-        return anthropicAi
+        return anthropicAi.chatClient()
                 .prompt()
                 .user(question)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, user))
                 .call()
                 .content();
+    }
+
+    public ChatMessages getChatMessages(String user) {
+        return transform(anthropicAi.chatMemory()
+                .get(user));
+    }
+
+    public void clearChatMessages(String user) {
+        anthropicAi.chatMemory()
+                .clear(user);
+    }
+
+    private ChatMessages transform(List<Message> messages) {
+        return ChatMessages.builder()
+                .chatMessages(messages.stream()
+                        .map(message -> ChatMessages.UniformMessage.builder()
+                                .content(message.getText())
+                                .messageType(message.getMessageType())
+                                .build())
+                        .toList())
+                .build();
     }
 }

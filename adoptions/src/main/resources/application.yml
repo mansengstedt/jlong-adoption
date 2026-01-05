@@ -29,10 +29,15 @@ spring:
             initialize-schema: always
     mcp:
       client:
+        url: http://localhost:8081
         stdio:
           #must exist in classpath
           #servers-configuration: classpath:/github-mcp.json
 
+logging:
+  level:
+    org.springframework.ai.chat.client: DEBUG
+    org.springframework.ai.chat.client.advisor: DEBUG
 
 management:
   endpoints:
