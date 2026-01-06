@@ -1,5 +1,6 @@
 package com.example.scheduler;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.boot.SpringApplication;
@@ -27,15 +28,17 @@ public class SchedulerApplication {
 }
 
 @Component
+@Slf4j
 class DogAdoptionScheduler {
 
     @Tool(description = "schedule an appointment to pickup or adopt a " +
             "dog from a Pooch Palace location")
     String schedule(int dogId, String dogName) {
-        System.out.println("Scheduling adoption for dog " + dogName);
-        return Instant
+        String cheduledDay = Instant
                 .now()
                 .plus(3, ChronoUnit.DAYS)
                 .toString();
+        log.info("Scheduling adoption for dog {} on {}!", dogName, cheduledDay);
+        return cheduledDay;
     }
 }
