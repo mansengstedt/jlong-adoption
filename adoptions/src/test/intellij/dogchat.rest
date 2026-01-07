@@ -1,7 +1,7 @@
 # 3 endpointes, 2 different users: user, user2
 
 ### First statement
-GET {{host}}/{{user2}}/assistant?question="my name is SnoopDog2!"
+GET {{host}}/{{user2}}/assistant?question="my name is Monica!"
 
 > {%
     client.test("Status", function () {
@@ -10,7 +10,7 @@ GET {{host}}/{{user2}}/assistant?question="my name is SnoopDog2!"
 %}
 
 ### First question
-GET {{host}}/{{user2}}/assistant?question="do you have any neurotic dogs?"
+GET {{host}}/{{user2}}/assistant?question="swchedule a meeting with Devil!"
 
 > {%
     client.test("Status", function () {
@@ -28,7 +28,7 @@ GET {{host}}/{{user}}/assistant?question="fantastic. when can i schedule an appo
 %}
 
 ### Fetch messages
-GET {{host}}/{{user2}}/messages
+GET {{host}}/{{user}}/messages
 
 > {%
     client.test("Status", function () {
@@ -37,7 +37,7 @@ GET {{host}}/{{user2}}/messages
 %}
 
 ### Clear messages
-DELETE {{host}}/{{user2}}/messages/clear
+DELETE {{host}}/{{user}}/messages/clear
 
 > {%
     client.test("Status", function () {

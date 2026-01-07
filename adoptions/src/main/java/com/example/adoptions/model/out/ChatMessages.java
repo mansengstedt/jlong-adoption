@@ -9,6 +9,6 @@ import java.util.List;
 public record ChatMessages(List<UniformMessage> chatMessages) {
 
     @Builder
-    public record UniformMessage(String content, MessageType messageType) {}
+    public record UniformMessage(String id, String content, MessageType messageType) {}
 
 }

@@ -18,6 +18,8 @@ VALUES (97, 'Rocky', 'A brown Chihuahua known for being protective.'),
        (65, 'Ruby', 'A white Great Dane known for being protective.'),
        (55, 'Ludde', 'A brown and black terrier that loves children.'),
        (56, 'Noicy', 'A brown labradoodle that only eat chicken and can stand loud noise.'),
+       (57, 'Devil', 'A black wolf that occasionally attack other dogs.'),
+       (58, 'Rex', 'A black wolflike dog that howls like a wolf but is less aggressive.'),
        (45, 'Prancer', 'A demonic, neurotic, man hating, animal hating, children hating dogs that look like a gremlin.')
 ON CONFLICT (id) DO UPDATE
     SET name        = EXCLUDED.name,

@@ -30,6 +30,7 @@ spring:
     mcp:
       client:
         url: http://localhost:8081
+        use-internal-server: true
         stdio:
           #must exist in classpath
           #servers-configuration: classpath:/github-mcp.json

@@ -1,7 +1,6 @@
 package com.example.adoptions.config;
 
 import io.modelcontextprotocol.client.McpClient;
-import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,11 +32,25 @@ public class AdoptionsConfig {
     }
 
     @Bean
-    McpSyncClient mcpSyncClient(@Value("${spring.ai.mcp.client.url}") String url) {
+    LazyMcpSyncClient lazyMcpSyncClient(@Value("${spring.ai.mcp.client.url}") String url, @Value("${spring.ai.mcp.client.use-internal-server}") Boolean useInternalServer) {
+        log.info("Initializing MCP client with url: {}", url);
         var mcp = McpClient
-                .sync(HttpClientSseClientTransport.builder(url).build()).build();
-        mcp.initialize();
-        return mcp;
+                .sync(HttpClientSseClientTransport.builder(url)
+                        .build())
+                .build();
+        try {
+            mcp.initialize();
+            log.info("Initialized MCP client successfully with url: {}", url);
+            return new LazyMcpSyncClient(mcp, true);
+        } catch (Exception e) {
+            if (!useInternalServer) {
+                log.error("Server failure since mcp initialization not possible, caused by: {}", e.getMessage(), e);
+                throw e;
+            } else {
+                log.error("Return uninitialized MCP client, fallback needed, WARNING: no external scheduling is possible: {}", e.getMessage(), e);
+                return new LazyMcpSyncClient(mcp, false);
+            }
+        }
     }
 
 }

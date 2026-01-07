@@ -1,9 +1,10 @@
 package com.example.adoptions.service;
 
 import com.example.adoptions.client.ChatClientWithChatMemory;
+import com.example.adoptions.config.LazyMcpSyncClient;
 import com.example.adoptions.model.out.ChatMessages;
 import com.example.adoptions.repository.DogRepository;
-import io.modelcontextprotocol.client.McpSyncClient;
+import com.example.adoptions.tools.DogAdoptionScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
@@ -21,6 +22,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
@@ -32,13 +34,14 @@ public class AdoptionsService {
                      DogRepository repository,
                      VectorStore vectorStore,
                      JdbcTemplate jdbcTemplate,
-                     McpSyncClient mcpSyncClient,
+                     LazyMcpSyncClient lazyMcpSyncClient,
+                     DogAdoptionScheduler scheduler,
                      ChatMemory chatMemory,
                      ChatClient.Builder ai,
                      @Value("${spring.ai.anthropic.model}") String model) {
 
         updateVectorStore(db, repository, vectorStore, jdbcTemplate);
-        this.anthropicAi = initChatClient(vectorStore, mcpSyncClient, chatMemory, ai, model);
+        this.anthropicAi = initChatClient(vectorStore, lazyMcpSyncClient, scheduler, chatMemory, ai, model);
     }
 
     private void updateVectorStore(JdbcClient db,
@@ -51,6 +54,7 @@ public class AdoptionsService {
                 .query(Integer.class)
                 .single();
         var currentDogs = repository.findAll();
+
         if (count != currentDogs.size()) {
             log.warn("Vector store is NOT up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), count);
             jdbcTemplate.execute("TRUNCATE TABLE " + VECTOR_STORE_TABLE_NAME);
@@ -68,7 +72,8 @@ public class AdoptionsService {
     }
 
     private ChatClientWithChatMemory initChatClient(VectorStore vectorStore,
-                                                    McpSyncClient mcpSyncClient,
+                                                    LazyMcpSyncClient lazyMcpSyncClient,
+                                                    DogAdoptionScheduler scheduler,
                                                     ChatMemory chatMemory,
                                                     ChatClient.Builder ai,
                                                     String model) {
@@ -81,15 +86,23 @@ public class AdoptionsService {
         PromptChatMemoryAdvisor promptChatMemoryAdvisor = PromptChatMemoryAdvisor
                 .builder(chatMemory)
                 .build();
-        return new ChatClientWithChatMemory(ai
-                .defaultToolCallbacks(new SyncMcpToolCallbackProvider(mcpSyncClient))
+
+        var builder = ai
                 .defaultAdvisors(promptChatMemoryAdvisor, QuestionAnswerAdvisor.builder(vectorStore).build())
                 .defaultAdvisors(new SimpleLoggerAdvisor())
                 .defaultSystem(system)
                 .defaultOptions(ChatOptions.builder()
                         .model(model)
-                        .build())
-                .build(), chatMemory);
+                        .build());
+
+        if (lazyMcpSyncClient.initialized()) {
+            builder.defaultToolCallbacks(new SyncMcpToolCallbackProvider(lazyMcpSyncClient.mcpSyncClient()));
+        } else {
+            log.info("MCP client not initialized, fallback to internal scheduling!");
+            builder.defaultTools(scheduler);
+        }
+
+        return new ChatClientWithChatMemory(builder.build(), chatMemory);
     }
 
     public String query(String user, String question) {
@@ -112,12 +125,16 @@ public class AdoptionsService {
     }
 
     private ChatMessages transform(List<Message> messages) {
+        final AtomicInteger id = new AtomicInteger(0);
         return ChatMessages.builder()
                 .chatMessages(messages.stream()
-                        .map(message -> ChatMessages.UniformMessage.builder()
-                                .content(message.getText())
-                                .messageType(message.getMessageType())
-                                .build())
+                        .map(message ->
+                            ChatMessages.UniformMessage.builder()
+                                    .content(message.getText())
+                                    .messageType(message.getMessageType())
+                                    .id(Integer.valueOf(id.incrementAndGet()).toString())
+                                    .build()
+                        )
                         .toList())
                 .build();
     }
