@@ -1,4 +1,5 @@
 # 2025-05-16-anthropic
+https://spring.io/blog/2025/05/20/your-first-spring-ai-1
 
 <!--
 - you first AI application with SPring Ai 1.0
