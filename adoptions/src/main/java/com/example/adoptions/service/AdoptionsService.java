@@ -2,6 +2,7 @@ package com.example.adoptions.service;
 
 import com.example.adoptions.client.ChatClientWithChatMemory;
 import com.example.adoptions.config.LazyMcpSyncClient;
+import com.example.adoptions.model.out.ChatAnswer;
 import com.example.adoptions.model.out.ChatMessages;
 import com.example.adoptions.repository.DogRepository;
 import com.example.adoptions.tools.DogAdoptionScheduler;
@@ -105,13 +106,16 @@ public class AdoptionsService {
         return new ChatClientWithChatMemory(builder.build(), chatMemory);
     }
 
-    public String query(String user, String question) {
-        return anthropicAi.chatClient()
-                .prompt()
-                .user(question)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, user))
-                .call()
-                .content();
+    public ChatAnswer query(String user, String question) {
+        return ChatAnswer.builder()
+                .content(
+                        anthropicAi.chatClient()
+                                .prompt()
+                                .user(question)
+                                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, user))
+                                .call()
+                                .content())
+                .build();
     }
 
     public ChatMessages getChatMessages(String user) {
@@ -129,11 +133,11 @@ public class AdoptionsService {
         return ChatMessages.builder()
                 .chatMessages(messages.stream()
                         .map(message ->
-                            ChatMessages.UniformMessage.builder()
-                                    .content(message.getText())
-                                    .messageType(message.getMessageType())
-                                    .id(Integer.valueOf(id.incrementAndGet()).toString())
-                                    .build()
+                                ChatMessages.UniformMessage.builder()
+                                        .content(message.getText())
+                                        .messageType(message.getMessageType())
+                                        .id(Integer.valueOf(id.incrementAndGet()).toString())
+                                        .build()
                         )
                         .toList())
                 .build();

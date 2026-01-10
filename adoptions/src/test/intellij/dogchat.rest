@@ -1,7 +1,7 @@
 # 3 endpointes, 2 different users: user, user2
 
 ### First statement
-GET {{host}}/{{user2}}/assistant?question="my name is Monica!"
+GET {{host}}/{{base_path}}/assistant?user={{user}}&question="my name is Måns!"
 
 > {%
     client.test("Status", function () {
@@ -10,7 +10,7 @@ GET {{host}}/{{user2}}/assistant?question="my name is Monica!"
 %}
 
 ### First question
-GET {{host}}/{{user2}}/assistant?question="swchedule a meeting with Devil!"
+GET {{host}}/{{base_path}}/assistant?user={{user}}&question="schedule a meeting with Devil!"
 
 > {%
     client.test("Status", function () {
@@ -19,7 +19,7 @@ GET {{host}}/{{user2}}/assistant?question="swchedule a meeting with Devil!"
 %}
 
 ### Followup question
-GET {{host}}/{{user}}/assistant?question="fantastic. when can i schedule an appointment to pickup Prancer from the New York City location?"
+GET {{host}}/{{base_path}}/assistant?user={{user}}&question="fantastic. when can i schedule an appointment to pickup Prancer from the New York City location?"
 
 > {%
     client.test("Status", function () {
@@ -28,7 +28,7 @@ GET {{host}}/{{user}}/assistant?question="fantastic. when can i schedule an appo
 %}
 
 ### Fetch messages
-GET {{host}}/{{user}}/messages
+GET {{host}}/{{base_path}}/messages?user={{user}}
 
 > {%
     client.test("Status", function () {
@@ -37,11 +37,20 @@ GET {{host}}/{{user}}/messages
 %}
 
 ### Clear messages
-DELETE {{host}}/{{user}}/messages/clear
+DELETE {{host}}/{{base_path}}/messages/clear?user={{user}}
 
 > {%
     client.test("Status", function () {
         client.assert(response.status === 204, "Unexpected response status");
+    });
+%}
+
+### Dummy endpoint for security test
+DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 403, "Unexpected response status");
     });
 %}
 
