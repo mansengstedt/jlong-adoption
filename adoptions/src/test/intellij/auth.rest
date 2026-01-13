@@ -1,0 +1,99 @@
+# curl -X POST http://localhost:9001/oauth2/token
+#-u "my-client:my-secret"
+#-d "grant_type=client_credentials"
+#-d "scope=read write"
+
+### ttl=300s
+POST {{auth_server_host}}/{{auth_server_base_path}}
+Authorization: Basic {{normal_client_id}} {{normal_secret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type = client_credentials &
+scope = read write
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+    client.global.set("normal_access_token", response.body.access_token);
+%}
+
+### ttl=5s
+POST {{auth_server_host}}/{{auth_server_base_path}}
+Authorization: Basic {{short_client_id}} {{short_secret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type = client_credentials &
+scope = read write
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+    client.global.set("short_access_token", response.body.access_token);
+%}
+
+### ttl=1 month
+POST {{auth_server_host}}/{{auth_server_base_path}}
+Authorization: Basic {{long_client_id}} {{long_secret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type = client_credentials &
+scope = read write
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+    client.global.set("long_access_token", response.body.access_token);
+%}
+
+### scope=read, missing write scope
+POST {{auth_server_host}}/{{auth_server_base_path}}
+Authorization: Basic {{long_client_id}} {{long_secret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type = client_credentials &
+scope = read
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+    client.global.set("read_access_token", response.body.access_token);
+%}
+
+### scope=write, ttl=300s
+POST {{auth_server_host}}/{{auth_server_base_path}}
+Authorization: Basic {{normal_client_id}} {{normal_secret}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type = client_credentials &
+scope = write
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+    client.global.set("write_access_token", response.body.access_token);
+%}
+
+
+
+### Discovery-endpoint
+GET {{auth_server_host}}/.well-known/openid-configuration
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+%}
+
+### JWKS-endpoint
+GET {{auth_server_host}}/oauth2/jwks
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 200, "Unexpected response status");
+    });
+%}

@@ -45,15 +45,54 @@ DELETE {{host}}/{{base_path}}/messages/clear?user={{user}}
     });
 %}
 
-### Dummy endpoint for security test
+### Dummy endpoint for security test without token
 DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 401, "Unexpected response status");
+    });
+%}
+
+### create tokens first, should then work, both  read and write scope
+DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
+Authorization: Bearer {{long_access_token}}
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 204, "Unexpected response status");
+    });
+%}
+
+### create tokens first, should then work, only write scope
+DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
+Authorization: Bearer {{write_access_token}}
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 204, "Unexpected response status");
+    });
+%}
+
+### Expired token, 401, setting clock skew to Zero, stops giving initial success
+DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
+Authorization: Bearer {{short_access_token}}
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 401, "Unexpected response status");
+    });
+%}
+
+### Should not, scope=read, write is missing
+DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
+Authorization: Bearer {{read_access_token}}
 
 > {%
     client.test("Status", function () {
         client.assert(response.status === 403, "Unexpected response status");
     });
 %}
-
 
 ### Info
 GET {{host}}/actuator/info

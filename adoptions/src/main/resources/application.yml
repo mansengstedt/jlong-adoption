@@ -8,6 +8,13 @@ spring:
     url: jdbc:postgresql://localhost:5433/postgresml
     username: myappuser
     password: mypassword
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          #not needed if issuer-uri is set
+          #jwk-set-uri: http://your-auth-server/.well-known/jwks.json
+          issuer-uri: http://localhost:9001
   ai:
     anthropic:
       #must be set to dummy value even if not used to avoid errors at startup, real value stored in secrets
