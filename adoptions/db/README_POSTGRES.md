@@ -4,6 +4,9 @@
 ### initialize postgres with data from users.sql and start postgres client, subsumes step 3 and 4
 2. execute> init.sh
 
+2.1 If container has not started, check with: docker ps -a, 
+start postgresml container from docker app:
+
 ### connect to postgres db with homebrew client (if step 2 is not executed)
 3. /opt/homebrew/bin/psql-17 -U postgresml -h localhost -p 5433 postgresml
 
