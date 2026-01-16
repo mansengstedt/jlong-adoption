@@ -1,0 +1,35 @@
+### download postgresml as docker image
+1. execute> run.sh
+
+### initialize postgres with data from users.sql and start postgres client, subsumes step 3 and 4
+2. execute> init.sh
+
+### connect to postgres db with homebrew client (if step 2 is not executed)
+3. /opt/homebrew/bin/psql-17 -U postgresml -h localhost -p 5433 postgresml
+
+### connect to postgres db inside docker container (if step 2 is not executed)
+3. docker exec -it f050cce3c4f8 sudo -u postgresml psql -d postgresml
+
+### initialize postgres with data from users.sql (if step 2 is not executed)
+4. postgresml=# CREATE ROLE myappuser WITH LOGIN PASSWORD 'mypassword';
+   postgresml=# CREATE DATABASE myappdb OWNER myappuser;
+   postgresml=# ...etc
+
+### load dog data into postgres
+5. start server that will load data in db if data.sql is updated
+
+### sql inside client
+6. postgresml=# select * from dog;
+7. postgresml=# select count(*) from vector_store;
+
+### list databases
+8. oauthdb=# \list
+
+###list all tables in database (here oauthdb)
+9. oauthdb=# \dt
+
+### exit client
+10. postgresml=# \q
+
+### stop docker container
+11. docker stop f050cce3c4f8
