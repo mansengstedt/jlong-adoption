@@ -20,6 +20,8 @@ start postgresml container from docker app:
 
 ### load dog data into postgres
 5. start server that will load data in db if data.sql is updated
+scheduler application (port 8081) needs to be started before loading data
+auth server (port 9001) needs to be started before loading data
 
 ### sql inside client
 6. postgresml=# select * from dog;
