@@ -97,7 +97,9 @@ public class AdoptionsService {
                         .build());
 
         if (lazyMcpSyncClient.initialized()) {
-            builder.defaultToolCallbacks(new SyncMcpToolCallbackProvider(lazyMcpSyncClient.mcpSyncClient()));
+            builder.defaultToolCallbacks(SyncMcpToolCallbackProvider.builder()
+                    .mcpClients(lazyMcpSyncClient.mcpSyncClient())
+                    .build());
         } else {
             log.info("MCP client not initialized, fallback to internal scheduling!");
             builder.defaultTools(scheduler);

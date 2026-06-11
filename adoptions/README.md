@@ -248,9 +248,10 @@ Per `db/README_POSTGRES.md`, for the assistant to fully work end-to-end:
       the app to start without the external scheduler.
 - **Tool wiring** in `AdoptionsService.initChatClient(...)`:
   - If `lazyMcpSyncClient.initialized()` is `true`, the chat client's tool callbacks are
-    set to `SyncMcpToolCallbackProvider(lazyMcpSyncClient.mcpSyncClient())` — i.e. the
-    Claude model can invoke scheduling tools exposed by the **external MCP scheduler
-    service** (port 8081).
+    set to `SyncMcpToolCallbackProvider.builder().mcpClients(lazyMcpSyncClient.mcpSyncClient()).build()`
+    (the builder API replaces the now-deprecated `SyncMcpToolCallbackProvider` constructors)
+    — i.e. the Claude model can invoke scheduling tools exposed by the **external MCP
+    scheduler service** (port 8081).
   - If `false`, the chat client falls back to the **internal**
     [DogAdoptionScheduler](src/main/java/com/example/adoptions/tools/DogAdoptionScheduler.java)
     `@Tool`-annotated component, which provides:
