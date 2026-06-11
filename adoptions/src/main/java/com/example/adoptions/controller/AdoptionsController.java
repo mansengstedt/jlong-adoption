@@ -4,6 +4,10 @@ import com.example.adoptions.model.out.ChatAnswer;
 import com.example.adoptions.model.out.ChatMessages;
 import com.example.adoptions.service.AdoptionsService;
 import com.nimbusds.jwt.JWT;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,29 +58,61 @@ public class AdoptionsController {
 
     private final AdoptionsService service;
 
+    @Operation(
+            summary = "Ask the adoption assistant a question",
+            description = "Sends a question to the Anthropic-backed adoption assistant. " +
+                    "The assistant uses RAG over the dog catalog and remembers prior " +
+                    "messages for the given user. This endpoint is not secured.")
+    @ApiResponse(responseCode = "200", description = "Assistant's answer to the question")
     @GetMapping(ASSISTANT)
     @ResponseStatus(HttpStatus.OK)
-    ChatAnswer inquire(@RequestParam String user, @RequestParam String question) {
+    ChatAnswer inquire(
+            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
+            @RequestParam String user,
+            @Parameter(description = "Natural language question for the assistant", example = "Do you have any calm dogs?")
+            @RequestParam String question) {
         return service.query(user, question);
     }
 
+    @Operation(
+            summary = "Get chat history for a user",
+            description = "Returns the persisted conversation history for the given user. " +
+                    "This endpoint is not secured.")
+    @ApiResponse(responseCode = "200", description = "List of chat messages for the user")
     @GetMapping(MESSAGES)
     @ResponseStatus(HttpStatus.OK)
-    ChatMessages getMessages(@RequestParam String user) {
+    ChatMessages getMessages(
+            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
+            @RequestParam String user) {
         return service.getChatMessages(user);
     }
 
+    @Operation(
+            summary = "Clear chat history for a user",
+            description = "Deletes the persisted conversation history for the given user. " +
+                    "This endpoint is not secured.")
+    @ApiResponse(responseCode = "204", description = "Chat history cleared")
     @DeleteMapping(MESSAGES + CLEAR)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    void clearMessages(@RequestParam String user) {
+    void clearMessages(
+            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
+            @RequestParam String user) {
         service.clearChatMessages(user);
     }
 
+    @Operation(
+            summary = "Demo endpoint for inspecting the JWT/OAuth2 authentication",
+            description = "Demonstrates reading the JwtAuthenticationToken and JWT principal. " +
+                    "Requires a bearer token with the 'write' scope (SCOPE_write).")
+    @ApiResponse(responseCode = "204", description = "Token inspected, no content returned")
+    @ApiResponse(responseCode = "403", description = "Missing or insufficient token scope")
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping(MESSAGES + DUMMY)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void dummyMessages(
             JwtAuthenticationToken auth,
             @AuthenticationPrincipal JWT jwt,
+            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
             @RequestParam String user) {
         //demo to show jwt settings
         parseAuth(auth);
@@ -99,7 +135,7 @@ public class AdoptionsController {
 
         Instant now = Instant.now();
         Instant expiresAt = auth.getToken().getExpiresAt();
-        log.info("Now: {}, Token expires at: {}, expired = {}", now, expiresAt, expiresAt.isBefore(now));
+        log.info("Now: {}, Token expires at: {}, expired = {}", now, expiresAt, expiresAt != null ? expiresAt.isBefore(now) : null);
 
         log.info("Authentication data: {}", map);
         log.info("Authentication toString: {}", auth);

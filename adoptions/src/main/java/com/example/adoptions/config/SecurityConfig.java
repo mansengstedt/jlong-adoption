@@ -51,6 +51,8 @@ public class SecurityConfig {
     public static final List<String> EXCLUDED_RESOURCES = List.of(
             "/swagger/**",
             "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**",
             "/actuator/**");
 
     @Bean

@@ -144,8 +144,18 @@ Additionally, Actuator endpoints are exposed and unsecured:
 - `/actuator/metrics`
 - `/actuator/prometheus`
 
-Swagger/OpenAPI paths (`/swagger/**`, `/swagger-ui/**`) are also excluded from
-authentication.
+Swagger/OpenAPI paths (`/swagger/**`, `/swagger-ui/**`, `/swagger-ui.html`,
+`/v3/api-docs/**`) are also excluded from authentication.
+
+### API documentation (Swagger UI)
+
+The API is documented with springdoc-openapi/Swagger annotations on the controller and
+DTO classes ([OpenApiConfig](src/main/java/com/example/adoptions/config/OpenApiConfig.java)
+defines a `bearerAuth` JWT security scheme for the secured endpoint). When the application
+is running locally, the interactive docs are available at:
+
+- Swagger UI: http://localhost:8080/swagger-ui.html
+- OpenAPI JSON: http://localhost:8080/v3/api-docs
 
 ### Security configuration summary
 
