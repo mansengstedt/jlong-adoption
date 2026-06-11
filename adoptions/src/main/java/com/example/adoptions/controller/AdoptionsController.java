@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -67,7 +68,7 @@ public class AdoptionsController {
     @GetMapping(ASSISTANT)
     @ResponseStatus(HttpStatus.OK)
     ChatAnswer inquire(
-            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
+            @Parameter(description = "Identifier of the user/conversation", example = "test_user")
             @RequestParam String user,
             @Parameter(description = "Natural language question for the assistant", example = "Do you have any calm dogs?")
             @RequestParam String question) {
@@ -82,7 +83,7 @@ public class AdoptionsController {
     @GetMapping(MESSAGES)
     @ResponseStatus(HttpStatus.OK)
     ChatMessages getMessages(
-            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
+            @Parameter(description = "Identifier of the user/conversation", example = "test_user")
             @RequestParam String user) {
         return service.getChatMessages(user);
     }
@@ -91,13 +92,20 @@ public class AdoptionsController {
             summary = "Clear chat history for a user",
             description = "Deletes the persisted conversation history for the given user. " +
                     "This endpoint is not secured.")
-    @ApiResponse(responseCode = "204", description = "Chat history cleared")
+    @ApiResponse(responseCode = "200", description = "Chat history cleared the returned messages")
+    @ApiResponse(responseCode = "409", description = "No messages can be deleted")
     @DeleteMapping(MESSAGES + CLEAR)
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    void clearMessages(
-            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
+    @ResponseStatus(HttpStatus.OK)
+    ChatMessages clearMessages(
+            @Parameter(description = "Identifier of the user/conversation", example = "test_user")
             @RequestParam String user) {
+        ChatMessages chatMessages = service.getChatMessages(user);
+        if (chatMessages == null || chatMessages.chatMessages().isEmpty()) {
+            log.warn("No chat history found for user '{}', nothing to clear.", user);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No chat history found for user '" + user + "', nothing to clear.");
+        }
         service.clearChatMessages(user);
+        return chatMessages;
     }
 
     @Operation(
@@ -113,7 +121,7 @@ public class AdoptionsController {
     void dummyMessages(
             JwtAuthenticationToken auth,
             @AuthenticationPrincipal JWT jwt,
-            @Parameter(description = "Identifier of the user/conversation", example = "testUser")
+            @Parameter(description = "Identifier of the user/conversation", example = "test_user")
             @RequestParam String user) {
         //demo to show jwt settings
         parseAuth(auth);

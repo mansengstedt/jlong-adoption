@@ -50,7 +50,7 @@ class AdoptionsSecurityTests {
 
         mockMvc.perform(get(ASSISTANT_PATH)
                         .param("question", "What is the meaning of life?")
-                        .param("user", "testUser"))
+                        .param("user", "test_user"))
                 .andExpect(status().isOk())
                 .andExpect(content().json(objectMapper.writeValueAsString(answer)));
     }
@@ -71,22 +71,30 @@ class AdoptionsSecurityTests {
                 .thenReturn(messages);
 
         mockMvc.perform(get(MESSAGES_PATH)
-                        .param("user", "testUser"))
+                        .param("user", "test_user"))
                 .andExpect(status().isOk())
                 .andExpect(content().json(objectMapper.writeValueAsString(messages)));
     }
 
     @Test
     void clearMessages_ShouldWorkWithoutToken() throws Exception {
+        when(adoptionsService.getChatMessages(anyString()))
+                .thenReturn(ChatMessages.builder()
+                        .chatMessages(List.of(ChatMessages.UniformMessage.builder()
+                                .id("1")
+                                .messageType(MessageType.USER)
+                                .content("Hello")
+                                .build()))
+                        .build());
         mockMvc.perform(delete(CLEAR_MESSAGES_PATH)
-                        .param("user", "testUser"))
-                .andExpect(status().isNoContent());
+                        .param("user", "test_user"))
+                .andExpect(status().isOk());
     }
 
     @Test
     void dummyMessages_WithScopeWrite_ShouldReturnNoContent() throws Exception {
         mockMvc.perform(delete(DUMMY_MESSAGES_PATH)
-                        .param("user", "testUser")
+                        .param("user", "test_user")
                         .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_write"))))
                 .andExpect(status().isNoContent());
     }
@@ -94,15 +102,15 @@ class AdoptionsSecurityTests {
     @Test
     void dummyMessages_WithoutToken_ShouldReturnForbidden() throws Exception {
         mockMvc.perform(delete(DUMMY_MESSAGES_PATH)
-                        .param("user", "testUser"))
-                .andExpect(status().isForbidden());
+                        .param("user", "test_user"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void dummyMessages_WithWrongScope_ShouldReturnForbidden() throws Exception {
 
         mockMvc.perform(delete("/api/adoption/messages/dummy")
-                        .param("user", "testUser")
+                        .param("user", "test_user")
                         .with(jwt().authorities(new SimpleGrantedAuthority("SCOPE_read"))))
                 .andExpect(status().isForbidden());
     }
