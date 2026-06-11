@@ -105,6 +105,7 @@ public class AdoptionsController {
             description = "Demonstrates reading the JwtAuthenticationToken and JWT principal. " +
                     "Requires a bearer token with the 'write' scope (SCOPE_write).")
     @ApiResponse(responseCode = "204", description = "Token inspected, no content returned")
+    @ApiResponse(responseCode = "401", description = "Unauthorized, lacks valid authentication credentials for the requested resource")
     @ApiResponse(responseCode = "403", description = "Missing or insufficient token scope")
     @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping(MESSAGES + DUMMY)

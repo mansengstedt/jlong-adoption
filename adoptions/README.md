@@ -76,7 +76,7 @@ for adoption and schedule/unschedule pickup appointments.
 - `spring.ai.anthropic.model` is set to `claude-sonnet-4-6`.
 - `AdoptionsService.initChatClient(...)` builds a `ChatClient` (Spring AI) configured with:
   - A **system prompt** describing the assistant's role (Pooch Palace adoption helper).
-  - `PromptChatMemoryAdvisor` — injects prior conversation history into the prompt
+  - `MessageChatMemoryAdvisor` — injects prior conversation history as `Message` objects
     (see chat memory section below).
   - `QuestionAnswerAdvisor` (vector store advisor) — performs RAG by querying the
     `VectorStore` for dog documents relevant to the user's question and adding them to
@@ -106,7 +106,7 @@ public record ChatClientWithChatMemory(ChatClient chatClient, ChatMemory chatMem
   conversation history is persisted in Postgres, not just in memory.
 - `AdoptionsService` uses this pairing for three purposes:
   - **`query(user, question)`** — calls the chat client with
-    `advisors(a -> a.param(ChatMemory.CONVERSATION_ID, user))`. The `PromptChatMemoryAdvisor`
+    `advisors(a -> a.param(ChatMemory.CONVERSATION_ID, user))`. The `MessageChatMemoryAdvisor`
     uses the `user` value as the conversation ID to load/store history per user, so each
     user has an independent, persisted conversation thread.
   - **`getChatMessages(user)`** — reads the raw message list from `chatMemory.get(user)`
@@ -116,6 +116,11 @@ public record ChatClientWithChatMemory(ChatClient chatClient, ChatMemory chatMem
     conversation history.
 - Bundling the `ChatClient` and `ChatMemory` together in one record avoids passing two
   separate beans around and keeps the "memory + AI" concept cohesive in the service layer.
+- Note: `MessageChatMemoryAdvisor` is used instead of the now-deprecated
+  `PromptChatMemoryAdvisor`. Rather than appending conversation history as text into the
+  system prompt, it prepends the stored history to the prompt as proper `Message` objects
+  (`UserMessage`/`AssistantMessage`), which works better with model-native message roles
+  and tool-calling.
 
 ## 4. REST endpoints
 

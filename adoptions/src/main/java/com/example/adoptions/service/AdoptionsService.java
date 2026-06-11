@@ -8,7 +8,7 @@ import com.example.adoptions.repository.DogRepository;
 import com.example.adoptions.tools.DogAdoptionScheduler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -84,12 +84,12 @@ public class AdoptionsService {
                 Information about the dogs available will be presented below.
                 If there is no information, then return a polite response suggesting we don't have any dogs available.
                 """;
-        PromptChatMemoryAdvisor promptChatMemoryAdvisor = PromptChatMemoryAdvisor
+        MessageChatMemoryAdvisor messageChatMemoryAdvisor = MessageChatMemoryAdvisor
                 .builder(chatMemory)
                 .build();
 
         var builder = ai
-                .defaultAdvisors(promptChatMemoryAdvisor, QuestionAnswerAdvisor.builder(vectorStore).build())
+                .defaultAdvisors(messageChatMemoryAdvisor, QuestionAnswerAdvisor.builder(vectorStore).build())
                 .defaultAdvisors(new SimpleLoggerAdvisor())
                 .defaultSystem(system)
                 .defaultOptions(ChatOptions.builder()
