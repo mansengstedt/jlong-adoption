@@ -1,9 +1,11 @@
 package com.example.adoptions.model.out;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import org.springframework.ai.chat.messages.MessageType;
 
+import java.time.Instant;
 import java.util.List;
 
 @Builder
@@ -19,7 +21,10 @@ public record ChatMessages(
             String id,
             @Schema(description = "Text content of the message")
             String content,
-            @Schema(description = "Role of the message author")
-            MessageType messageType) {}
+            @JsonProperty("message_type")
+            @Schema(name = "message_type", description = "Role of the message author")
+            MessageType messageType,
+            @Schema(description = "When the message was originally created")
+            Instant timestamp) {}
 
 }

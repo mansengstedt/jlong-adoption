@@ -22,6 +22,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AdoptionsService {
 
     private final ChatClientWithChatMemory anthropicAi;
+    private final JdbcClient db;
 
     AdoptionsService(JdbcClient db,
                      DogRepository repository,
@@ -43,6 +46,7 @@ public class AdoptionsService {
 
         updateVectorStore(db, repository, vectorStore, jdbcTemplate);
         this.anthropicAi = initChatClient(vectorStore, lazyMcpSyncClient, scheduler, chatMemory, ai, model);
+        this.db = db;
     }
 
     private void updateVectorStore(JdbcClient db,
@@ -122,7 +126,7 @@ public class AdoptionsService {
 
     public ChatMessages getChatMessages(String user) {
         return transform(anthropicAi.chatMemory()
-                .get(user));
+                .get(user), getMessageTimestamps(user));
     }
 
     public void clearChatMessages(String user) {
@@ -130,17 +134,36 @@ public class AdoptionsService {
                 .clear(user);
     }
 
-    private ChatMessages transform(List<Message> messages) {
+    /**
+     * MessageWindowChatMemory.get() discards the "timestamp" column from
+     * SPRING_AI_CHAT_MEMORY, so it's read back directly here, oldest first.
+     */
+    private List<Instant> getMessageTimestamps(String user) {
+        return db.sql("SELECT \"timestamp\" FROM SPRING_AI_CHAT_MEMORY WHERE conversation_id = :user ORDER BY \"timestamp\"")
+                .param("user", user)
+                .query(Timestamp.class)
+                .list()
+                .stream()
+                .map(Timestamp::toInstant)
+                .toList();
+    }
+
+    private ChatMessages transform(List<Message> messages, List<Instant> timestamps) {
         final AtomicInteger id = new AtomicInteger(0);
+        // ChatMemory may window the messages, so only the most recent timestamps line up with them
+        final int skip = Math.max(0, timestamps.size() - messages.size());
         return ChatMessages.builder()
                 .chatMessages(messages.stream()
-                        .map(message ->
-                                ChatMessages.UniformMessage.builder()
-                                        .content(message.getText())
-                                        .messageType(message.getMessageType())
-                                        .id(Integer.valueOf(id.incrementAndGet()).toString())
-                                        .build()
-                        )
+                        .map(message -> {
+                            int index = id.getAndIncrement();
+                            Instant timestamp = index + skip < timestamps.size() ? timestamps.get(index + skip) : null;
+                            return ChatMessages.UniformMessage.builder()
+                                    .content(message.getText())
+                                    .messageType(message.getMessageType())
+                                    .id(Integer.valueOf(index + 1).toString())
+                                    .timestamp(timestamp)
+                                    .build();
+                        })
                         .toList())
                 .build();
     }
