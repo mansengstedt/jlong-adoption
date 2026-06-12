@@ -110,10 +110,28 @@ public record ChatClientWithChatMemory(ChatClient chatClient, ChatMemory chatMem
     uses the `user` value as the conversation ID to load/store history per user, so each
     user has an independent, persisted conversation thread.
   - **`getChatMessages(user)`** — reads the raw message list from `chatMemory.get(user)`
-    and transforms it into the `ChatMessages` DTO (id, content, message type) for API
-    responses.
+    and transforms it into the `ChatMessages` DTO (id, content, message type, timestamp)
+    for API responses.
   - **`clearChatMessages(user)`** — calls `chatMemory.clear(user)` to wipe a user's
     conversation history.
+
+### Recovering message timestamps from `SPRING_AI_CHAT_MEMORY`
+
+`ChatMemory.get(user)` returns `Message` objects whose `getMetadata()` does **not**
+contain a creation timestamp — `JdbcChatMemoryRepository`'s row mapper reads the
+`"timestamp"` column from `SPRING_AI_CHAT_MEMORY` but discards it when building the
+`Message`. To still expose a `timestamp` per message in the `ChatMessages` DTO,
+`AdoptionsService.getChatMessages(user)` runs an additional query directly against
+`SPRING_AI_CHAT_MEMORY`:
+
+```sql
+SELECT "timestamp" FROM SPRING_AI_CHAT_MEMORY WHERE conversation_id = :user ORDER BY "timestamp"
+```
+
+The resulting timestamps (oldest first) are zipped with the `Message` list from
+`chatMemory.get(user)` by position. Because `MessageWindowChatMemory` may return fewer
+messages than are stored (older ones trimmed from the window), the oldest timestamps are
+skipped so the last N timestamps line up with the last N messages.
 - Bundling the `ChatClient` and `ChatMemory` together in one record avoids passing two
   separate beans around and keeps the "memory + AI" concept cohesive in the service layer.
 - Note: `MessageChatMemoryAdvisor` is used instead of the now-deprecated
@@ -132,7 +150,7 @@ under base path **`/api/adoption`**, producing `application/json` /
 | Method | Path | In parameters | Out (response) | Security |
 |---|---|---|---|---|
 | GET | `/api/adoption/assistant` | Query params: `user` (String), `question` (String) | `200 OK`, [ChatAnswer](src/main/java/com/example/adoptions/model/out/ChatAnswer.java) — `{ "content": string }` | **Unsecured** (`permitAll`) |
-| GET | `/api/adoption/messages` | Query param: `user` (String) | `200 OK`, [ChatMessages](src/main/java/com/example/adoptions/model/out/ChatMessages.java) — `{ "chatMessages": [{ "id": string, "content": string, "messageType": enum }] }` | **Unsecured** (`permitAll`) |
+| GET | `/api/adoption/messages` | Query param: `user` (String) | `200 OK`, [ChatMessages](src/main/java/com/example/adoptions/model/out/ChatMessages.java) — `{ "chatMessages": [{ "id": string, "content": string, "message_type": enum, "timestamp": string }] }` | **Unsecured** (`permitAll`) |
 | DELETE | `/api/adoption/messages/clear` | Query param: `user` (String) | `204 No Content` | **Unsecured** (`permitAll`) |
 | DELETE | `/api/adoption/messages/dummy` | Query param: `user` (String); requires a Bearer JWT | `204 No Content` | **Secured** — requires `SCOPE_write` authority (OAuth2/JWT) |
 
