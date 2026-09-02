@@ -151,7 +151,7 @@ public class AdoptionsController {
     }
 
     /**
-     * Does not work, is null, for com.nimbusds.jwt.JWT and is also not needed when using JwtAuthenticationToken
+     * Does not work, is null, for com.nimbusds.jwt.JWT, and is also not needed when using JwtAuthenticationToken
      *
      * @param jwt the Json Web Token that might be null
      */

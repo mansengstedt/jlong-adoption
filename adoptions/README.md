@@ -194,9 +194,10 @@ Defined in
   4. Everything else requires authentication (`anyRequest().authenticated()`).
 - The app is configured as an **OAuth2 Resource Server** validating JWTs
   (`oauth2ResourceServer().jwt(...)`).
-- `JwtDecoder` is built from the issuer URI `http://localhost:9001`
-  (`spring.security.oauth2.resourceserver.jwt.issuer-uri` in `application.yml`), with clock
-  skew tolerance set to zero.
+- `JwtDecoder` reads the issuer and explicit JWK Set URI from `application.yml`.
+  The JWK Set URI is `http://localhost:9001/oauth2/jwks`; the issuer is still validated,
+  with clock skew tolerance set to zero. Explicit JWK configuration avoids requiring
+  issuer discovery metadata during application startup.
 - If `spring-boot-starter-security` and `spring-boot-starter-oauth2-resource-server` were
   removed from `pom.xml` *and* this config class removed, all endpoints would be
   unsecured. Removing only the config class (but keeping the dependencies) results in

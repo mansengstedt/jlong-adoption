@@ -12,9 +12,10 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          #not needed if issuer-uri is set
-          #jwk-set-uri: http://your-auth-server/.well-known/jwks.json
           issuer-uri: http://localhost:9001
+          # The authorization server exposes its keys here. Using this explicit
+          # endpoint avoids requiring issuer metadata during application startup.
+          jwk-set-uri: http://localhost:9001/oauth2/jwks
   ai:
     anthropic:
       #must be set to dummy value even if not used to avoid errors at startup, real value stored in secrets
@@ -59,10 +60,12 @@ management:
         enabled: true
       group:
         liveness:
-          include: livenessState
+          include:
+            - livenessState
         readiness:
           # This service cannot work without a DB
-          include: readinessState
+          include:
+            - readinessState
   info:
     env:
       enabled: true

@@ -1,5 +1,6 @@
 package com.example.adoptions.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -10,8 +11,8 @@ import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
-import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.jwt.JwtIssuerValidator;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -94,20 +95,23 @@ public class SecurityConfig {
     }
 
     /**
-     * Creates a JwtDecoder that ignores clock skew.
-     * To prevent requests from failing prematurely due to minor time differences,
-     * Spring Security (via the Nimbus library) applies a default 60-second "grace period" (clock skew) during JWT validation.
+     * Creates a JwtDecoder with zero clock skew.
+     * This makes the token's {@code iat}, {@code nbf}, and {@code exp} timestamps
+     * apply exactly, without Spring Security's default 60-second grace period.
      * @return the JwtDecoder
      */
     @Bean
-    public JwtDecoder jwtDecoder() {
-        // Replace with your actual issuer URI from application.yml
-        String issuerUri = "http://localhost:9001";
-        NimbusJwtDecoder jwtDecoder = JwtDecoders.fromIssuerLocation(issuerUri);
+    public JwtDecoder jwtDecoder(
+            @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri) {
+        // Use the explicit JWK endpoint instead of issuer discovery. The authorization
+        // server exposes its keys at /oauth2/jwks and may not expose discovery metadata
+        // early enough during local startup.
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
 
         OAuth2TokenValidator<Jwt> withClockSkew = new DelegatingOAuth2TokenValidator<>(
-                JwtValidators.createDefaultWithIssuer(issuerUri),
-                new org.springframework.security.oauth2.jwt.JwtTimestampValidator(Duration.ZERO) // Set skew to 0
+                new JwtIssuerValidator(issuerUri),
+                new JwtTimestampValidator(Duration.ZERO) // Set skew to 0
         );
 
         jwtDecoder.setJwtValidator(withClockSkew);
