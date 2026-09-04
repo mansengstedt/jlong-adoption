@@ -1,5 +1,6 @@
 package com.example.adoptions.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,7 @@ import static com.example.adoptions.controller.AdoptionsController.CLEAR_MESSAGE
 import static com.example.adoptions.controller.AdoptionsController.DUMMY_MESSAGES_PATH;
 import static com.example.adoptions.controller.AdoptionsController.MESSAGES_PATH;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 /*
@@ -115,6 +117,7 @@ public class SecurityConfig {
         );
 
         jwtDecoder.setJwtValidator(withClockSkew);
+        log.info("oauth issuer-uri: {}, JWT decoder initialized with zero clock skew", issuerUri);
         return jwtDecoder;
     }
 }

@@ -24,8 +24,8 @@ for adoption and schedule/unschedule pickup appointments.
 
 ### Frameworks & language
 
-- **Java 25**, built with **Maven** (`pom.xml`), Spring Boot **3.5.9** parent.
-- **Spring AI 1.1.2** (BOM-managed) for LLM orchestration:
+- **Java 25**, built with **Maven** (`pom.xml`), Spring Boot **3.5.16** parent.
+- **Spring AI 1.1.8** (BOM-managed) for LLM orchestration:
   - `spring-ai-starter-model-anthropic` — Anthropic Claude chat model integration.
   - `spring-ai-starter-vector-store-pgvector` — pgvector-backed `VectorStore`.
   - `spring-ai-starter-model-postgresml-embedding` — embeddings computed via PostgresML.
@@ -88,6 +88,26 @@ for adoption and schedule/unschedule pickup appointments.
     on whether the MCP client initialized successfully (see MCP section below).
 - The resulting `ChatClient` plus the `ChatMemory` bean are wrapped in a
   `ChatClientWithChatMemory` record and stored on the service.
+
+### Custom `AnthropicChatModel` bean (temperature workaround)
+
+Recent Anthropic models (e.g. Claude Sonnet 5) reject the `temperature` request
+parameter. Spring AI's auto-configuration (`AnthropicAutoConfiguration`) defaults
+`temperature` to `0.8`, which causes API calls to these models to fail.
+
+To work around this,
+[AdoptionsConfig](src/main/java/com/example/adoptions/config/AdoptionsConfig.java)
+defines a custom `AnthropicChatModel` bean that copies all auto-configured options but
+explicitly sets `temperature` to `null`:
+
+```java
+AnthropicChatOptions options = AnthropicChatOptions.fromOptions(chatProperties.getOptions());
+options.setTemperature(null);
+```
+
+Declaring this bean also causes the Spring AI auto-configuration to back off (the
+auto-configured `AnthropicChatModel` is `@ConditionalOnMissingBean`), so the custom
+bean fully replaces it.
 
 ## 3. Chat memory (`ChatClientWithChatMemory`)
 

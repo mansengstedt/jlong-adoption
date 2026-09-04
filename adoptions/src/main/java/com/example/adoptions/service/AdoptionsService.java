@@ -54,14 +54,14 @@ public class AdoptionsService {
                                    VectorStore vectorStore,
                                    JdbcTemplate jdbcTemplate) {
         var VECTOR_STORE_TABLE_NAME = "vector_store";
-        var count = db
+        var countVS = db
                 .sql("select count(*) from " + VECTOR_STORE_TABLE_NAME)
                 .query(Integer.class)
                 .single();
         var currentDogs = repository.findAll();
 
-        if (count != currentDogs.size()) {
-            log.warn("Vector store is NOT up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), count);
+        if (countVS != currentDogs.size()) {
+            log.warn("Vector store is NOT up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), countVS);
             jdbcTemplate.execute("TRUNCATE TABLE " + VECTOR_STORE_TABLE_NAME);
             currentDogs.forEach(dog -> {
                 var document = new Document("id: %s, name: %s, description: %s".formatted(
@@ -72,8 +72,13 @@ public class AdoptionsService {
             });
             log.info("Vector store is now up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), currentDogs.size());
         } else {
-            log.info("Vector store is up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), count);
+            log.info("Vector store is up to date. Number of dogs in db: {}, number of dogs in vector store: {}.", currentDogs.size(), countVS);
         }
+
+        db.sql("SELECT id, content FROM vector_store ORDER BY id")
+                .query((rs, rowNum) -> "id=%s, content=%s".formatted(rs.getString("id"), rs.getString("content")))
+                .list()
+                .forEach(row -> log.info("Vector store entry: {}", row));
     }
 
     private ChatClientWithChatMemory initChatClient(VectorStore vectorStore,
@@ -105,7 +110,7 @@ public class AdoptionsService {
                     .mcpClients(lazyMcpSyncClient.mcpSyncClient())
                     .build());
         } else {
-            log.info("MCP client not initialized, fallback to internal scheduling!");
+            log.info("MCP client not initialized, fallback to internal scheduling in {}!!!", scheduler.getClass().getName());
             builder.defaultTools(scheduler);
         }
 

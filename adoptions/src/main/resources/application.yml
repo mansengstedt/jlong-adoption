@@ -20,7 +20,7 @@ spring:
     anthropic:
       #must be set to dummy value even if not used to avoid errors at startup, real value stored in secrets
       api-key: ${ANTHROPIC_CONNECTION_KEY:NOT_NEEDED}
-      model: claude-sonnet-4-6
+      model: claude-sonnet-5
     postgresml:
       embedding:
         create-extension: true
@@ -46,7 +46,6 @@ spring:
 logging:
   level:
     org.springframework.ai.chat.client: DEBUG
-    org.springframework.ai.chat.client.advisor: DEBUG
 
 management:
   endpoints:
