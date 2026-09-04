@@ -76,7 +76,7 @@ public class AdoptionsService {
         }
 
         db.sql("SELECT id, content FROM vector_store ORDER BY id")
-                .query((rs, rowNum) -> "id=%s, content=%s".formatted(rs.getString("id"), rs.getString("content")))
+                .query((rs, _rowNum) -> "id=%s, content=%s".formatted(rs.getString("id"), rs.getString("content")))
                 .list()
                 .forEach(row -> log.info("Vector store entry: {}", row));
     }

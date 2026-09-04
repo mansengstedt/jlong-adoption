@@ -120,9 +120,7 @@ public class AdoptionsController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void dummyMessages(
             JwtAuthenticationToken auth,
-            @AuthenticationPrincipal JWT jwt,
-            @Parameter(description = "Identifier of the user/conversation", example = "test_user")
-            @RequestParam String user) {
+            @AuthenticationPrincipal JWT jwt) {
         //demo to show jwt settings
         parseAuth(auth);
         parseJwt(jwt);

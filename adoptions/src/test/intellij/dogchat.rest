@@ -54,7 +54,17 @@ DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
     });
 %}
 
-### create tokens first, should then work, both  read and write scope
+### create tokens first, should then work, both read and write scope
+DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
+Authorization: Bearer {{normal_access_token}}
+
+> {%
+    client.test("Status", function () {
+        client.assert(response.status === 204, "Unexpected response status");
+    });
+%}
+
+### create tokens first, should then work, both read and write scope
 DELETE {{host}}/{{base_path}}/messages/dummy?user={{user}}
 Authorization: Bearer {{long_access_token}}
 
