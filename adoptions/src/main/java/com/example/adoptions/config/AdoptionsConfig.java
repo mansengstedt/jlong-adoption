@@ -28,6 +28,7 @@ public class AdoptionsConfig {
      * Spring AI 1.1.8 supplies temperature=0.8 by default. Claude Sonnet 5
      * rejects that request parameter, so keep the default options but omit it.
      * Defining this bean also makes the Anthropic auto-configuration back off.
+     *
      */
     @Bean
     AnthropicChatModel anthropicChatModel(AnthropicApi anthropicApi,
